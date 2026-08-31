@@ -18,8 +18,9 @@ def calculate_shannon_entropy(series):
     """
     Calculates the Shannon information entropy in bits for a given series of signs.
     """
-    probabilities = series.value_counts(normalize=True)
-    entropy = -sum(probabilities * np.log2(probabilities))
+    # Исправлено: считаем вероятности и используем np.sum для мгновенного вычисления
+    probabilities = series.value_counts(normalize=True).to_numpy()
+    entropy = -np.sum(probabilities * np.log2(probabilities))
     return entropy
 
 def run_friedman_test(df_positions):
@@ -27,8 +28,6 @@ def run_friedman_test(df_positions):
     Performs a Friedman test across the 5 inscription slots to verify
     whether the differences in positional constraints are statistically significant.
     """
-    # Friedman test requires groups of observations. We chunk the dataset into bootstrap samples
-    # to evaluate positional variance and significance.
     bootstrap_samples = []
     np.random.seed(42) # Set seed for reproducibility
     
@@ -78,19 +77,15 @@ def generate_reproducible_chart(df_bootstrap):
     plt.tight_layout()
     chart_path = 'positional_entropy_profile.png'
     plt.savefig(chart_path, dpi=300)
-    plt.close()
     print(f"[Success] Entropy profile chart saved as '{chart_path}'")
+    
+    # Добавлено: показывать график во всплывающем окне
+    plt.show() 
+    plt.close()
 
 # --- MAIN EXECUTION & TOY DATA GENERATION ---
 if __name__ == "__main__":
     print("Initializing Indus Computational Epigraphy Pipeline...")
-    
-    # Generating a highly representative synthetic dataset of 500 inscriptions
-    # reflecting the statistical constraints of the ICIT database:
-    # - Slot 1: Low entropy (Issuer prefixes: standard set of 12 signs)
-    # - Slot 2 & Slot 3: High entropy (Unique merchant IDs: broad vocabulary of 120 signs)
-    # - Slot 4: Penultimate "Pri-Krasner Dip" (Transaction limits: constrained numerals/symbols)
-    # - Slot 5: Left Terminal: Low-moderate entropy (End markers: standard terminal signs)
     
     np.random.seed(42)
     n_records = 500
@@ -98,16 +93,14 @@ if __name__ == "__main__":
     slot_1_vocabulary = [f"S1_{i}" for i in range(12)]
     slot_2_vocabulary = [f"S2_{i}" for i in range(120)]
     slot_3_vocabulary = [f"S3_{i}" for i in range(120)]
-    slot_4_vocabulary = ["II", "III", "IIII", "S4_A", "S4_B"] # Constrained set
+    slot_4_vocabulary = ["II", "III", "IIII", "S4_A", "S4_B"] 
     slot_5_vocabulary = [f"S5_{i}" for i in range(25)]
     
-    # Generate distribution biased to reflect real Shannon values:
-    # Slot 1: ~3.13 bits, Slot 2: ~4.44 bits, Slot 3: ~4.45 bits, Slot 4: ~3.77 bits, Slot 5: ~3.98 bits
     data = {
         'Slot 1': np.random.choice(slot_1_vocabulary, size=n_records, p=[0.3, 0.2, 0.15, 0.1, 0.05, 0.05, 0.04, 0.03, 0.03, 0.02, 0.02, 0.01]),
-        'Slot 2': np.random.choice(slot_2_vocabulary, size=n_records), # Uniform high entropy
-        'Slot 3': np.random.choice(slot_3_vocabulary, size=n_records), # Uniform high entropy
-        'Slot 4': np.random.choice(slot_4_vocabulary, size=n_records, p=[0.4, 0.25, 0.15, 0.12, 0.08]), # Constrained
+        'Slot 2': np.random.choice(slot_2_vocabulary, size=n_records), 
+        'Slot 3': np.random.choice(slot_3_vocabulary, size=n_records), 
+        'Slot 4': np.random.choice(slot_4_vocabulary, size=n_records, p=[0.4, 0.25, 0.15, 0.12, 0.08]), 
         'Slot 5': np.random.choice(slot_5_vocabulary, size=n_records, p=[0.2] + [0.8/24]*24)
     }
     
